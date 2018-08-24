@@ -11,14 +11,22 @@ height = 480
 bits = 16
 pygame.mixer.pre_init(44100, -bits, 2)
 
+image = None
+cam = None
+
 pygame.init()
-# pygame.camera.init()
-# cam = pygame.camera.Camera("/dev/video0", (width, height))
-# cam.start()
+pygame.camera.init()
+if len(pygame.camera.list_cameras()) > 0:
+    print('found')
+    cam = pygame.camera.Camera("/dev/video0", (width, height))
+    print('Cam: ', cam )
+    cam.start()
+    image = cam.get_image()
+    cam.stop()
 
-
-
-
+else:
+    print('no camera found')
+    image = pygame.image.load("test.png")
 
 duration = 1.0          # in seconds
 # freqency for the left speaker
@@ -62,10 +70,6 @@ print('HIER')
 
 windowSurfaceObj = pygame.display.set_mode((width, height), 1, 16)
 pygame.display.set_caption('Scanner')
-
-# image = cam.get_image()
-image = pygame.image.load("test.png")
-# cam.stop()
 
 catSurfaceObj = image
 windowSurfaceObj.blit(catSurfaceObj, (0, 0))
@@ -126,7 +130,12 @@ while True:
 
     # TODO scanner-bar as own surface and use Surface.scroll() to move it over the screen
     scannerpos += scannerwidth
-    scannerpos = scannerpos % width
+    if scannerpos > width:
+        scannerpos = scannerpos % width
+        cam.start()
+        image = cam.get_image()
+        cam.stop()
+
     del pa
     windowSurfaceObj.blit(catSurfaceObj, (0, 0))
     # windowSurfaceObj.blit(image, (0, 0))
