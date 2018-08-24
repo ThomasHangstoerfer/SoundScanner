@@ -6,67 +6,95 @@ import pygame.camera
 
 width = 640
 height = 480
+line_count = 5
+line_height = height / line_count
 
+
+def initSound(freq_l, freq_r):
+    duration = 1.0          # in seconds
+    # freqency for the left speaker
+    #frequency_l = 440
+    frequency_l = freq_l
+    # frequency for the right speaker
+    #frequency_r = 550
+    frequency_r = freq_r
+
+    # this sounds totally different coming out of a laptop versus coming out of headphones
+
+    sample_rate = 44100
+
+    n_samples = int(round(duration*sample_rate))
+
+    # setup our numpy array to handle 16 bit ints, which is what we set our mixer to expect with "bits" up above
+    buf = numpy.zeros((n_samples, 2), dtype = numpy.int16)
+    max_sample = 2**(bits - 1) - 1
+
+    for s in range(n_samples):
+        t = float(s)/sample_rate    # time in seconds
+
+        # grab the x-coordinate of the sine wave at a given time,
+        # while constraining the sample to what our mixer is set to with "bits"
+        buf[s][0] = int(round(max_sample*math.sin(2*math.pi*frequency_l*t)))        # left
+        buf[s][1] = int(round(max_sample*0.5*math.sin(2*math.pi*frequency_r*t)))    # right
+
+    return pygame.sndarray.make_sound(buf)
+
+def draw_line(windowSurfaceObj, line_idx):
+    pygame.draw.line(windowSurfaceObj, (255, 100, 100), (0, line_height*line_idx-2), (width, line_height*line_idx-2), 2)
+    pygame.draw.line(windowSurfaceObj, (255, 0, 0), (0, line_height*line_idx), (width, line_height*line_idx), 1)
+    pygame.draw.line(windowSurfaceObj, (255, 100, 100), (0, line_height*line_idx+1), (width, line_height*line_idx+1), 2)
 
 bits = 16
 pygame.mixer.pre_init(44100, -bits, 2)
 
 image = None
 cam = None
-
+static_image = True
 pygame.init()
 pygame.camera.init()
-if len(pygame.camera.list_cameras()) > 0:
+if len(pygame.camera.list_cameras()) > 0 and not static_image:
     print('found')
     cam = pygame.camera.Camera("/dev/video0", (width, height))
     print('Cam: ', cam )
     cam.start()
     image = cam.get_image()
-    cam.stop()
 
 else:
     print('no camera found')
     image = pygame.image.load("test.png")
 
-duration = 1.0          # in seconds
-# freqency for the left speaker
-frequency_l = 440
-# frequency for the right speaker
-frequency_r = 550
+sound0 = initSound(523, 659)
+sound1 = initSound(440, 554)
+sound2 = initSound(261, 329)
 
-# this sounds totally different coming out of a laptop versus coming out of headphones
+channel0 = pygame.mixer.Channel(0)
+channel1 = pygame.mixer.Channel(1)
+channel2 = pygame.mixer.Channel(2)
+channel3 = pygame.mixer.Channel(3)
+channel4 = pygame.mixer.Channel(4)
 
-sample_rate = 44100
+channel0.play(sound0, loops = -1)
+channel1.play(sound1, loops = -1)
+channel2.play(sound2, loops = -1)
+channel3.play(sound2, loops = -1)
+channel4.play(sound2, loops = -1)
 
-print('HIER')
+channel0.pause()
+channel1.pause()
+channel2.pause()
+channel3.pause()
+channel4.pause()
 
-n_samples = int(round(duration*sample_rate))
+channels = [channel0, channel1, channel2, channel3, channel4]
 
-# setup our numpy array to handle 16 bit ints, which is what we set our mixer to expect with "bits" up above
-buf = numpy.zeros((n_samples, 2), dtype = numpy.int16)
-max_sample = 2**(bits - 1) - 1
-
-for s in range(n_samples):
-    t = float(s)/sample_rate    # time in seconds
-
-    # grab the x-coordinate of the sine wave at a given time,
-    # while constraining the sample to what our mixer is set to with "bits"
-    buf[s][0] = int(round(max_sample*math.sin(2*math.pi*frequency_l*t)))        # left
-    buf[s][1] = int(round(max_sample*0.5*math.sin(2*math.pi*frequency_r*t)))    # right
-
-sound = pygame.sndarray.make_sound(buf)
-# play once, then loop forever
-# sound.play(loops = -1)
-
-channel1 = pygame.mixer.Channel(0) # argument must be int
-channel2 = pygame.mixer.Channel(1)
-channel1.play(sound, loops = -1)
-
-print('HIER')
-
-
-
-
+scannerBar = pygame.Surface((10, height))
+pa = pygame.PixelArray(scannerBar)
+pa[0:1, :] = pygame.Color(100, 100, 255)
+pa[1:4, :] = pygame.Color(180, 180, 255)
+pa[4:6, :] = pygame.Color(255, 255, 255)
+pa[6:8, :] = pygame.Color(100, 100, 255)
+pa[8:9, :] = pygame.Color(180, 180, 255)
+del pa
 
 windowSurfaceObj = pygame.display.set_mode((width, height), 1, 16)
 pygame.display.set_caption('Scanner')
@@ -95,49 +123,48 @@ while True:
                 sys.exit()
             if event.key == pygame.K_p:
                 print('p')
-                channel1.pause()
+                channel0.pause()
             if event.key == pygame.K_l:
                 print('l')
-                channel1.unpause()
-
-    # if pygame.time.get_ticks() - ticks > 50:
-    # ballrect = ballrect.move(speed)
-    #    ticks = pygame.time.get_ticks()
-
-    #if ballrect.left <= 0 or ballrect.right >= width:
-    #    beschleunige()
-    #    speed[0] = -speed[0]
-    # if ballrect.top <= 0 or ballrect.bottom >= height:
-    #    beschleunige()
-    #    speed[1] = -speed[1]
-
-    # screen.fill(black)
-    # screen.blit(text, (320 - text.get_width() // 2, 240 - text.get_height() // 2))
-    # screen.blit(text, (0, 0))
-
-    # screen.blit(wolf, wolfrect)
-    # screen.blit(sheep, sheeprect)
+                channel0.unpause()
 
     catSurfaceObj = image.copy()
-    # with pygame.PixelArray(catSurfaceObj) as pa:
-        # pa[100:110, 100:110] = pygame.Color(255, 0, 255)
-        # pa.close()
 
-    pa = pygame.PixelArray(catSurfaceObj)
-    pa[scannerpos:scannerpos + scannerwidth, :] = pygame.Color(255, 100, 100)
-    pa[scannerpos-1:scannerpos, :] = pygame.Color(255, 0, 255)
-    pa[scannerpos+scannerwidth+1:scannerpos+scannerwidth+2, :] = pygame.Color(255, 0, 255)
+    pa = pygame.PixelArray(image)
+    scan_col = pa[scannerpos, :]
 
-    # TODO scanner-bar as own surface and use Surface.scroll() to move it over the screen
+    for l in range(line_count):
+        play_line = False
+        for i in range(line_height):
+            if scan_col[l*line_height + i] == 0:
+                play_line = True
+
+        #print('play_line %i: %i' % (l, play_line))
+        if play_line:
+            channels[l].unpause()
+        else:
+            channels[l].pause()
+
+    del pa
+
+
+    #print('scan_col : ', scan_col)
+
+    catSurfaceObj.blit(scannerBar, (scannerpos, 0))
+
     scannerpos += scannerwidth
     if scannerpos > width:
         scannerpos = scannerpos % width
-        cam.start()
-        image = cam.get_image()
-        cam.stop()
+    if scannerpos % 10 == 0:
+        if cam != None:
+            image = cam.get_image()
 
-    del pa
     windowSurfaceObj.blit(catSurfaceObj, (0, 0))
-    # windowSurfaceObj.blit(image, (0, 0))
+
+
+    draw_line(windowSurfaceObj, 1)
+    draw_line(windowSurfaceObj, 2)
+    draw_line(windowSurfaceObj, 3)
+    draw_line(windowSurfaceObj, 4)
 
     pygame.display.flip()
